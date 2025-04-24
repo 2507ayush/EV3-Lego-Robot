@@ -2,12 +2,14 @@ import paramiko
 import time
 
 # EV3 connection details
-HOST = '192.168.201.222'  # EV3's IP address
+HOST = '192.168.14.222'  # EV3's IP address
 PORT = 22                  # SSH port
 USERNAME = 'robot'         # Default EV3 username
 PASSWORD = 'maker'         # Default EV3 password
 
-def send_command(command):
+SENSOR_DIR = "sensor1"  # Updated sensor directory based on detected sensor
+
+def send_command():
     try:
         # Set up SSH client
         ssh = paramiko.SSHClient()
@@ -15,35 +17,59 @@ def send_command(command):
         # Connect to EV3
         ssh.connect(HOST, PORT, USERNAME, PASSWORD, timeout=10)
 
+        sensor_path = f"/sys/class/lego-sensor/{SENSOR_DIR}"
+
         while True:
-            # Execute command
-            stdin, stdout, stderr = ssh.exec_command(command)
+            # Read sensor mode
+            stdin, stdout, stderr = ssh.exec_command(f"cat {sensor_path}/mode")
+            mode = stdout.read().decode().strip()
+            error_mode = stderr.read().decode().strip()
 
-            # Read response
-            response = stdout.read().decode().strip()
-            error = stderr.read().decode().strip()
+            # Read sensor decimals
+            stdin, stdout, stderr = ssh.exec_command(f"cat {sensor_path}/decimals")
+            decimals_str = stdout.read().decode().strip()
+            error_decimals = stderr.read().decode().strip()
 
-            if error:
-                print(f"Error: {error}")
+            # Read sensor units
+            stdin, stdout, stderr = ssh.exec_command(f"cat {sensor_path}/units")
+            units = stdout.read().decode().strip()
+            error_units = stderr.read().decode().strip()
+
+            # Read sensor value0
+            stdin, stdout, stderr = ssh.exec_command(f"cat {sensor_path}/value0")
+            value0_str = stdout.read().decode().strip()
+            error_value0 = stderr.read().decode().strip()
+
+            if error_mode or error_decimals or error_units or error_value0:
+                print(f"Errors: {error_mode} {error_decimals} {error_units} {error_value0}")
             else:
-                print(f"Received UV value: {response}")
+                print(f"Sensor mode: {mode}")
+                print(f"Sensor decimals: {decimals_str}")
+                print(f"Sensor units: {units}")
+                print(f"Raw sensor value: {value0_str}")
+
+                try:
+                    decimals = int(decimals_str)
+                    raw_value = int(value0_str)
+                    scaled_value = raw_value / (10 ** decimals) if decimals > 0 else raw_value
+                    # Clamp scaled value to 0-100 range
+                    scaled_value_clamped = max(0, min(100, scaled_value))
+                    print(f"Scaled sensor value (0-100): {scaled_value_clamped}")
+                except ValueError:
+                    print("Invalid numeric value for scaling.")
 
             time.sleep(1)  # Wait for 1 second before the next reading
 
-        # Close connection (this line will not be reached in an infinite loop)
-        ssh.close()
-
+    except KeyboardInterrupt:
+        print("Stopping sensor reading loop.")
     except paramiko.ssh_exception.AuthenticationException:
         print("Authentication failed. Check username/password.")
     except paramiko.ssh_exception.NoValidConnectionsError:
         print("Could not connect to EV3. Is SSH enabled?")
     except Exception as e:
         print(f"An error occurred: {e}")
+    finally:
+        ssh.close()
 
-# Command to read UV sensor value (modify this for your EV3 setup)
-uv_sensor_command = "cat /sys/class/lego-sensor/sensor0/value0"  # Adjust sensor index if needed
-# Command to read UV sensor value with dynamic range
-uv_sensor_command_with_range = "cat /sys/class/lego-sensor/sensor0/value0 --range 30.0"  # Adjust sensor index and range as needed
-
-
-send_command(uv_sensor_command)
+# Start reading sensor values
+send_command()
