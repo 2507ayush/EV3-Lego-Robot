@@ -1,7 +1,7 @@
 import paramiko
 import time
 
-HOST = '192.168.35.222'
+HOST = '192.168.86.222'
 PORT = 22
 USERNAME = 'robot'
 PASSWORD = 'maker'
@@ -57,7 +57,7 @@ def send_command():
                 except ValueError:
                     pass
 
-            time.sleep(1)
+            time.sleep(0.5)
 
     except KeyboardInterrupt:
         pass
