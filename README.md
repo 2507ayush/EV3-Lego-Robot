@@ -87,6 +87,6 @@ Ayushman Verma
 GLA University, Mathura
 E-mail - vermamaan55@gmail.com
 Phone - 8532080960
-LinkedIn - https://www.linkedin.com/in/ayushman-verma-0791752a8/
+LinkedIn - www.linkedin.com/in/ayushman-verma-0791752a8
 Github - @2507ayush
 
